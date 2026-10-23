@@ -59,7 +59,7 @@
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const $=id=>document.getElementById(id),c=window.AIX_CONFIG;
 const db=createClient(c.SUPABASE_URL,c.SUPABASE_PUBLISHABLE_KEY);
-let courses=[],selected=null,token=null,courseStats=new Map(),statsLoaded=false;
+let courses=[],selected=null,token=null,courseStats=new Map(),courseLabels=new Map(),statsLoaded=false;
 const icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h6a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4zM20 5.5h-4a3 3 0 0 0-3 3v11a3 3 0 0 1 3-3h4z"/></svg>';
 function render(q=''){
  const filtered=courses.filter(x=>(x.course_title+' '+x.course_description).toLowerCase().includes(q.trim().toLowerCase()));
@@ -74,7 +74,7 @@ function render(q=''){
   const mark=document.createElement('span');mark.className='mark';mark.innerHTML=icon;
   const body=document.createElement('span');body.className='course-body';
   const name=document.createElement('span');name.className='course-name';name.textContent=item.course_title;
-  const kind=document.createElement('span');kind.className='course-kind';kind.textContent='수업 구분 · 온라인 강의';
+  const kind=document.createElement('span');kind.className='course-kind';kind.textContent='수업 구분 · '+(courseLabels.get(item.course_id)||'미등록');
   const desc=document.createElement('span');desc.className='course-desc';if(item.course_description)desc.textContent=item.course_description;
   const stat=document.createElement('span');stat.className='course-stats';
   const info=courseStats.get(item.course_id);
@@ -109,5 +109,5 @@ $('homeBrand').addEventListener('click',async e=>{
  $('courseSearch').value='';render();window.scrollTo({top:0,behavior:'smooth'});
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('closePlayer').click();$('authModal').classList.remove('open')}});
-try{const {data,error}=await db.rpc('list_aix_courses');if(error)throw error;courses=data||[];if(courses.length){render();const r=await db.rpc('list_aix_course_status');if(r.error){console.warn('과목 공개 현황 조회 실패:',r.error.message);$('status').textContent='과목별 공개 현황을 불러오지 못했습니다. Supabase 조회 함수 설치를 확인해 주세요.';$('status').classList.add('error')}else{courseStats=new Map((r.data||[]).map(x=>[x.course_id,{total_lessons:Number(x.total_lessons)||0,open_lessons:Number(x.open_lessons)||0}]));statsLoaded=true;render($('courseSearch').value)}}else $('status').textContent='현재 등록된 교육과정이 없습니다.'}catch(e){$('status').textContent='교육과정 조회 오류: '+e.message;$('status').classList.add('error')}
+try{const {data,error}=await db.rpc('list_aix_courses');if(error)throw error;courses=data||[];if(courses.length){render();const r=await db.rpc('list_aix_course_status');if(r.error){console.warn('과목 공개 현황 조회 실패:',r.error.message);$('status').textContent='과목별 공개 현황을 불러오지 못했습니다. Supabase 조회 함수 설치를 확인해 주세요.';$('status').classList.add('error')}else{courseStats=new Map((r.data||[]).map(x=>[x.course_id,{total_lessons:Number(x.total_lessons)||0,open_lessons:Number(x.open_lessons)||0}]));statsLoaded=true;const lbl=await db.rpc('list_aix_course_labels');if(lbl.error){console.warn('수업 구분 조회 실패:',lbl.error.message)}else{courseLabels=new Map((lbl.data||[]).map(x=>[x.course_id,x.class_label]))}render($('courseSearch').value)}}else $('status').textContent='현재 등록된 교육과정이 없습니다.'}catch(e){$('status').textContent='교육과정 조회 오류: '+e.message;$('status').classList.add('error')}
 </script></body></html>
